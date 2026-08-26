@@ -1,15 +1,9 @@
-# lorenz0# 🧠 Jogo da Senha Secreta (Bulls and Cows)
+# 🧠 Senha Secreta Pro (Mastermind)
 
-Um jogo interativo de lógica feito em Python onde o jogador precisa adivinhar um código numérico gerado aleatoriamente.
+Aplicação desktop completa feita em Python com interface gráfica (Tkinter), banco de dados local SQLite e sistema de ranking.
 
-## 🚀 Funcionalidades
-- **Dificuldade ajustável:** Escolha entre 3, 4 ou 5 dígitos.
-- **Validação inteligente:** Impede tentativas inválidas e dígitos repetidos sem consumir rodadas.
-- **Painel de Histórico:** Acompanhe os palpites anteriores para facilitar a dedução lógica.
-
-## 🛠️ Como executar
-1. Certifique-se de ter o **Python 3** instalado.
-2. Clone este repositório ou baixe os arquivos.
-3. Execute o comando:
+## 🚀 Como Executar
+1. Instale o **Python 3.8+**.
+2. Execute o arquivo principal:
    ```bash
-   python main.py
+   python app.py
