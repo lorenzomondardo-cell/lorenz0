@@ -1,0 +1,102 @@
+import random
+import os
+
+def limpar_tela():
+    """Limpa o console de acordo com o sistema operacional."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def gerar_senha(tamanho):
+    """Gera uma senha aleatória com dígitos únicos."""
+    digitos = list("0123456789")
+    random.shuffle(digitos)
+    return "".join(digitos[:tamanho])
+
+def selecionar_dificuldade():
+    """Permite ao jogador escolher a dificuldade."""
+    print("=== NÍVEL DE DIFICULDADE ===")
+    print("1. Fácil    (3 dígitos)")
+    print("2. Médio    (4 dígitos)")
+    print("3. Difícil  (5 dígitos)")
+    
+    while True:
+        opcao = input("\nEscolha uma opção (1, 2 ou 3): ").strip()
+        if opcao == "1":
+            return 3
+        elif opcao == "2":
+            return 4
+        elif opcao == "3":
+            return 5
+        print("Opção inválida. Digite 1, 2 ou 3.")
+
+def validar_palpite(chute, tamanho):
+    """Valida se o palpite do jogador atende aos requisitos do jogo."""
+    if len(chute) != tamanho or not chute.isdigit():
+        print(f"⚠️ Entradas precisam ter exatamente {tamanho} números.")
+        return False
+    if len(set(chute)) != tamanho:
+        print("⚠️ Os números não podem se repetir.")
+        return False
+    return True
+
+def jogar():
+    limpar_tela()
+    print("========================================")
+    print("    🧠 JOGO DA SENHA SECRETA 🔒        ")
+    print("========================================")
+    
+    tamanho_senha = selecionar_dificuldade()
+    senha = gerar_senha(tamanho_senha)
+    tentativas = 0
+    historico = []
+
+    limpar_tela()
+    print("========================================")
+    print(f"  Senha gerada! Tente adivinhar ({tamanho_senha} dígitos).")
+    print("========================================")
+
+    while True:
+        chute = input("\nDigite seu palpite (ou 'S' para sair): ").strip()
+
+        if chute.lower() == 's':
+            print(f"\nGame Over! A senha era: {senha}")
+            break
+
+        if not validar_palpite(chute, tamanho_senha):
+            continue
+
+        tentativas += 1
+
+        # Cálculo de acertos
+        certos = sum(1 for i in range(tamanho_senha) if chute[i] == senha[i])
+        existentes = sum(1 for c in chute if c in senha) - certos
+
+        historico.append((chute, certos, existentes))
+
+        # Vitória
+        if certos == tamanho_senha:
+            print("\n🎉 PARABÉNS! Você quebrou o código!")
+            print(f"🔑 Senha: {senha}")
+            print(f"📊 Total de tentativas: {tentativas}")
+            break
+        
+        # Painel de Progresso
+        print(f"\n--- Resultado da Tentativa {tentativas} ---")
+        print(f"🎯 Posição correta: {certos}")
+        print(f"🟡 Fora de posição: {existentes}")
+        
+        # Exibe histórico recente
+        if len(historico) > 1:
+            print("\n📜 Histórico de chutes:")
+            for h_chute, h_certos, h_existentes in historico[:-1]:
+                print(f"   • {h_chute} -> 🎯 {h_certos} | 🟡 {h_existentes}")
+
+def main():
+    while True:
+        jogar()
+        repetir = input("\nDeseja jogar novamente? (S/N): ").strip().lower()
+        if repetir != 's':
+            print("\nObrigado por jogar! Até a próxima.")
+            break
+
+if __name__ == "__main__":
+    main()
