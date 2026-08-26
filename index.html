@@ -1,101 +1,194 @@
 import random
 import os
+import time
+import json
+
+ARQUIVO_RANKING = "ranking.json"
 
 def limpar_tela():
-    """Limpa o console de acordo com o sistema operacional."""
+    """Limpa o console do sistema."""
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def carregar_ranking():
+    """Carrega as melhores pontuações salvas."""
+    if os.path.exists(ARQUIVO_RANKING):
+        try:
+            with open(ARQUIVO_RANKING, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def salvar_ranking(ranking):
+    """Salva a lista de recordes em um arquivo JSON."""
+    try:
+        with open(ARQUIVO_RANKING, "w", encoding="utf-8") as f:
+            json.dump(ranking, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Erro ao salvar ranking: {e}")
+
+def atualizar_ranking(nome, pontuacao, tempo, dificuldade):
+    """Atualiza o ranking local se o jogador conseguir uma boa pontuação."""
+    ranking = carregar_ranking()
+    novo_registro = {
+        "nome": nome,
+        "pontos": pontuacao,
+        "tempo_segundos": round(tempo, 1),
+        "dificuldade": dificuldade
+    }
+    ranking.append(novo_registro)
+    # Ordena pelo maior número de pontos
+    ranking.sort(key=lambda x: x["pontos"], reverse=True)
+    # Mantém apenas os 5 melhores
+    salvar_ranking(ranking[:5])
+
+def exibir_ranking():
+    """Exibe a tabela dos melhores jogadores."""
+    ranking = carregar_ranking()
+    print("\n🏆 --- TOP 5 MELHORES PONTUAÇÕES --- 🏆")
+    if not ranking:
+        print("Nenhum recorde registrado ainda!")
+    else:
+        for idx, reg in enumerate(ranking, start=1):
+            print(f"{idx}. {reg['nome']} - {reg['pontos']} pts | {reg['dificuldade']} | Tempo: {reg['tempo_segundos']}s")
+    print("=" * 40)
+
 def gerar_senha(tamanho):
-    """Gera uma senha aleatória com dígitos únicos."""
+    """Gera uma senha aleatória sem dígitos repetidos."""
     digitos = list("0123456789")
     random.shuffle(digitos)
     return "".join(digitos[:tamanho])
 
-def selecionar_dificuldade():
-    """Permite ao jogador escolher a dificuldade."""
-    print("=== NÍVEL DE DIFICULDADE ===")
-    print("1. Fácil    (3 dígitos)")
-    print("2. Médio    (4 dígitos)")
-    print("3. Difícil  (5 dígitos)")
+def selecionar_configuracoes():
+    """Menu para configurar a partida."""
+    print("========================================")
+    print("    ⚙️  CONFIGURAÇÕES DA PARTIDA        ")
+    print("========================================")
+    print("1. Fácil    (3 dígitos | 12 tentativas)")
+    print("2. Médio    (4 dígitos | 10 tentativas)")
+    print("3. Difícil  (5 dígitos | 8 tentativas)")
     
     while True:
-        opcao = input("\nEscolha uma opção (1, 2 ou 3): ").strip()
+        opcao = input("\nEscolha o nível (1, 2 ou 3): ").strip()
         if opcao == "1":
-            return 3
+            return 3, 12, "Fácil"
         elif opcao == "2":
-            return 4
+            return 4, 10, "Médio"
         elif opcao == "3":
-            return 5
-        print("Opção inválida. Digite 1, 2 ou 3.")
+            return 5, 8, "Difícil"
+        print("❌ Opção inválida! Escolha 1, 2 ou 3.")
 
 def validar_palpite(chute, tamanho):
-    """Valida se o palpite do jogador atende aos requisitos do jogo."""
+    """Garante que a entrada do usuário seja um número válido."""
     if len(chute) != tamanho or not chute.isdigit():
-        print(f"⚠️ Entradas precisam ter exatamente {tamanho} números.")
+        print(f"⚠️ Digite exatamente {tamanho} números.")
         return False
     if len(set(chute)) != tamanho:
-        print("⚠️ Os números não podem se repetir.")
+        print("⚠️ Os números não podem se repetir no mesmo palpite.")
         return False
     return True
 
+def dar_dica(senha, revelados):
+    """Revela um dígito não descoberto para o jogador."""
+    posicoes_disponiveis = [i for i in range(len(senha)) if i not in revelados]
+    if posicoes_disponiveis:
+        pos = random.choice(posicoes_disponiveis)
+        revelados.append(pos)
+        print(f"💡 DICA: O dígito na posição {pos + 1} é '{senha[pos]}'.")
+    else:
+        print("💡 Todas as posições já foram dadas como dica!")
+
 def jogar():
     limpar_tela()
-    print("========================================")
-    print("    🧠 JOGO DA SENHA SECRETA 🔒        ")
-    print("========================================")
-    
-    tamanho_senha = selecionar_dificuldade()
+    tamanho_senha, max_tentativas, nome_dif = selecionar_configuracoes()
     senha = gerar_senha(tamanho_senha)
+    
     tentativas = 0
     historico = []
+    dicas_reveladas = []
+    pontos = 1000
+    tempo_inicio = time.time()
 
     limpar_tela()
     print("========================================")
-    print(f"  Senha gerada! Tente adivinhar ({tamanho_senha} dígitos).")
+    print(f"  🧠 JOGO DA SENHA SECRETA ({nome_dif})")
+    print(f"  Senha de {tamanho_senha} dígitos | Máximo: {max_tentativas} tentativas")
+    print("  Digite 'DICA' para obter ajuda (-200 pts)")
+    print("  Digite 'SAIR' para desistir")
     print("========================================")
 
-    while True:
-        chute = input("\nDigite seu palpite (ou 'S' para sair): ").strip()
+    while tentativas < max_tentativas:
+        restantes = max_tentativas - tentativas
+        chute = input(f"\n[Tentativa {tentativas + 1}/{max_tentativas}] Digite seu palpite: ").strip().upper()
 
-        if chute.lower() == 's':
-            print(f"\nGame Over! A senha era: {senha}")
-            break
+        if chute == "SAIR":
+            print(f"\n🚪 Você desistiu! A senha correta era: {senha}")
+            return
+
+        if chute == "DICA":
+            pontos = max(0, pontos - 200)
+            dar_dica(senha, dicas_reveladas)
+            continue
 
         if not validar_palpite(chute, tamanho_senha):
             continue
 
         tentativas += 1
-
-        # Cálculo de acertos
+        
+        # Cálculo dos acertos
         certos = sum(1 for i in range(tamanho_senha) if chute[i] == senha[i])
         existentes = sum(1 for c in chute if c in senha) - certos
-
+        
         historico.append((chute, certos, existentes))
 
-        # Vitória
+        # Condição de vitória
         if certos == tamanho_senha:
-            print("\n🎉 PARABÉNS! Você quebrou o código!")
+            tempo_total = time.time() - tempo_inicio
+            pontos_finais = max(50, pontos - (tentativas * 50) - int(tempo_total * 2))
+            
+            print("\n🎉 PARABÉNS! Você descobriu a senha!")
             print(f"🔑 Senha: {senha}")
-            print(f"📊 Total de tentativas: {tentativas}")
-            break
-        
-        # Painel de Progresso
-        print(f"\n--- Resultado da Tentativa {tentativas} ---")
-        print(f"🎯 Posição correta: {certos}")
-        print(f"🟡 Fora de posição: {existentes}")
-        
-        # Exibe histórico recente
-        if len(historico) > 1:
-            print("\n📜 Histórico de chutes:")
-            for h_chute, h_certos, h_existentes in historico[:-1]:
-                print(f"   • {h_chute} -> 🎯 {h_certos} | 🟡 {h_existentes}")
+            print(f"⏱️ Tempo: {round(tempo_total, 1)}s")
+            print(f"⭐ Pontuação: {pontos_finais} pontos")
+            
+            nome = input("\nDigite seu nome para o Ranking: ").strip()
+            if nome:
+                atualizar_ranking(nome, pontos_finais, tempo_total, nome_dif)
+            return
+
+        # Exibe resultado atual
+        print(f"🎯 Posição exata: {certos} | 🟡 Número correto na posição errada: {existentes}")
+
+        # Exibe histórico resumido
+        print("\n📜 Histórico da partida:")
+        for h_chute, h_certos, h_existentes in historico:
+            print(f"   • {h_chute} -> 🎯 {h_certos} | 🟡 {h_existentes}")
+
+    # Se esgotar as tentativas
+    print("\n💥 GAME OVER! Você gastou todas as suas tentativas.")
+    print(f"🔑 A senha secreta era: {senha}")
 
 def main():
     while True:
-        jogar()
-        repetir = input("\nDeseja jogar novamente? (S/N): ").strip().lower()
-        if repetir != 's':
-            print("\nObrigado por jogar! Até a próxima.")
+        limpar_tela()
+        print("========================================")
+        print("      🎮 MENU PRINCIPAL - SENHA        ")
+        print("========================================")
+        print("1. Jogar")
+        print("2. Ver Ranking")
+        print("3. Sair")
+        
+        opcao = input("\nEscolha uma opção: ").strip()
+        
+        if opcao == "1":
+            jogar()
+            input("\nPressione ENTER para voltar ao menu...")
+        elif opcao == "2":
+            limpar_tela()
+            exibir_ranking()
+            input("\nPressione ENTER para voltar ao menu...")
+        elif opcao == "3":
+            print("\nAté a próxima!")
             break
 
 if __name__ == "__main__":
