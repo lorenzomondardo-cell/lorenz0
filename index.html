@@ -1,195 +1,301 @@
-import random
-import os
-import time
-import json
-
-ARQUIVO_RANKING = "ranking.json"
-
-def limpar_tela():
-    """Limpa o console do sistema."""
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-def carregar_ranking():
-    """Carrega as melhores pontuações salvas."""
-    if os.path.exists(ARQUIVO_RANKING):
-        try:
-            with open(ARQUIVO_RANKING, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
-
-def salvar_ranking(ranking):
-    """Salva a lista de recordes em um arquivo JSON."""
-    try:
-        with open(ARQUIVO_RANKING, "w", encoding="utf-8") as f:
-            json.dump(ranking, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        print(f"Erro ao salvar ranking: {e}")
-
-def atualizar_ranking(nome, pontuacao, tempo, dificuldade):
-    """Atualiza o ranking local se o jogador conseguir uma boa pontuação."""
-    ranking = carregar_ranking()
-    novo_registro = {
-        "nome": nome,
-        "pontos": pontuacao,
-        "tempo_segundos": round(tempo, 1),
-        "dificuldade": dificuldade
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Senha Secreta Pro</title>
+  <style>
+    :root {
+      --bg: #1e1e2e;
+      --panel: #313244;
+      --fg: #cdd6f4;
+      --accent: #89b4fa;
+      --success: #a6e3a1;
+      --warning: #f9e2af;
+      --danger: #f38ba8;
     }
-    ranking.append(novo_registro)
-    # Ordena pelo maior número de pontos
-    ranking.sort(key=lambda x: x["pontos"], reverse=True)
-    # Mantém apenas os 5 melhores
-    salvar_ranking(ranking[:5])
 
-def exibir_ranking():
-    """Exibe a tabela dos melhores jogadores."""
-    ranking = carregar_ranking()
-    print("\n🏆 --- TOP 5 MELHORES PONTUAÇÕES --- 🏆")
-    if not ranking:
-        print("Nenhum recorde registrado ainda!")
-    else:
-        for idx, reg in enumerate(ranking, start=1):
-            print(f"{idx}. {reg['nome']} - {reg['pontos']} pts | {reg['dificuldade']} | Tempo: {reg['tempo_segundos']}s")
-    print("=" * 40)
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-def gerar_senha(tamanho):
-    """Gera uma senha aleatória sem dígitos repetidos."""
-    digitos = list("0123456789")
-    random.shuffle(digitos)
-    return "".join(digitos[:tamanho])
+    body {
+      background-color: var(--bg);
+      color: var(--fg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
 
-def selecionar_configuracoes():
-    """Menu para configurar a partida."""
-    print("========================================")
-    print("    ⚙️  CONFIGURAÇÕES DA PARTIDA        ")
-    print("========================================")
-    print("1. Fácil    (3 dígitos | 12 tentativas)")
-    print("2. Médio    (4 dígitos | 10 tentativas)")
-    print("3. Difícil  (5 dígitos | 8 tentativas)")
-    
-    while True:
-        opcao = input("\nEscolha o nível (1, 2 ou 3): ").strip()
-        if opcao == "1":
-            return 3, 12, "Fácil"
-        elif opcao == "2":
-            return 4, 10, "Médio"
-        elif opcao == "3":
-            return 5, 8, "Difícil"
-        print("❌ Opção inválida! Escolha 1, 2 ou 3.")
+    .container {
+      background-color: var(--panel);
+      padding: 25px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
 
-def validar_palpite(chute, tamanho):
-    """Garante que a entrada do usuário seja um número válido."""
-    if len(chute) != tamanho or not chute.isdigit():
-        print(f"⚠️ Digite exatamente {tamanho} números.")
-        return False
-    if len(set(chute)) != tamanho:
-        print("⚠️ Os números não podem se repetir no mesmo palpite.")
-        return False
-    return True
+    h1 {
+      text-align: center;
+      color: var(--accent);
+      margin-top: 0;
+    }
 
-def dar_dica(senha, revelados):
-    """Revela um dígito não descoberto para o jogador."""
-    posicoes_disponiveis = [i for i in range(len(senha)) if i not in revelados]
-    if posicoes_disponiveis:
-        pos = random.choice(posicoes_disponiveis)
-        revelados.append(pos)
-        print(f"💡 DICA: O dígito na posição {pos + 1} é '{senha[pos]}'.")
-    else:
-        print("💡 Todas as posições já foram dadas como dica!")
+    .config-panel {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
 
-def jogar():
-    limpar_tela()
-    tamanho_senha, max_tentativas, nome_dif = selecionar_configuracoes()
-    senha = gerar_senha(tamanho_senha)
-    
-    tentativas = 0
-    historico = []
-    dicas_reveladas = []
-    pontos = 1000
-    tempo_inicio = time.time()
+    select, input, button {
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+    }
 
-    limpar_tela()
-    print("========================================")
-    print(f"  🧠 JOGO DA SENHA SECRETA ({nome_dif})")
-    print(f"  Senha de {tamanho_senha} dígitos | Máximo: {max_tentativas} tentativas")
-    print("  Digite 'DICA' para obter ajuda (-200 pts)")
-    print("  Digite 'SAIR' para desistir")
-    print("========================================")
+    select {
+      flex: 1;
+      background: var(--bg);
+      color: var(--fg);
+    }
 
-    while tentativas < max_tentativas:
-        restantes = max_tentativas - tentativas
-        chute = input(f"\n[Tentativa {tentativas + 1}/{max_tentativas}] Digite seu palpite: ").strip().upper()
+    button {
+      background-color: var(--accent);
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
 
-        if chute == "SAIR":
-            print(f"\n🚪 Você desistiu! A senha correta era: {senha}")
-            return
+    button:hover {
+      opacity: 0.9;
+    }
 
-        if chute == "DICA":
-            pontos = max(0, pontos - 200)
-            dar_dica(senha, dicas_reveladas)
-            continue
+    .status-bar {
+      text-align: center;
+      margin-bottom: 15px;
+      font-weight: bold;
+      min-height: 24px;
+    }
 
-        if not validar_palpite(chute, tamanho_senha):
-            continue
+    .input-panel {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
 
-        tentativas += 1
+    .input-panel input {
+      flex: 1;
+      background: var(--bg);
+      color: var(--fg);
+      text-align: center;
+      letter-spacing: 2px;
+    }
+
+    .input-panel button {
+      background-color: var(--success);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid var(--bg);
+    }
+
+    th {
+      color: var(--accent);
+    }
+
+    .ranking {
+      margin-top: 20px;
+      background: var(--bg);
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .ranking h3 {
+      margin-top: 0;
+      color: var(--warning);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>🧠 Senha Secreta Pro</h1>
+
+    <div class="config-panel">
+      <select id="difficulty">
+        <option value="facil">Fácil (3 dígitos | 12 tent.)</option>
+        <option value="medio" selected>Médio (4 dígitos | 10 tent.)</option>
+        <option value="dificil">Difícil (5 dígitos | 8 tent.)</option>
+      </select>
+      <button onclick="iniciarJogo()">Novo Jogo</button>
+    </div>
+
+    <div class="status-bar" id="status">Clique em "Novo Jogo" para começar.</div>
+
+    <div class="input-panel">
+      <input type="text" id="palpite" placeholder="Digite seu palpite" disabled maxlength="6">
+      <button id="btnEnviar" onclick="processarPalpite()" disabled>Enviar</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Palpite</th>
+          <th>🎯 Exatos</th>
+          <th>🟡 Fora de Posição</th>
+        </tr>
+      </thead>
+      <tbody id="historico"></tbody>
+    </table>
+
+    <div class="ranking">
+      <h3>🏆 Recorde Local</h3>
+      <div id="melhorScore">Nenhum registro ainda.</div>
+    </div>
+  </div>
+
+  <script>
+    const CONFIGS = {
+      facil: { length: 3, maxAttempts: 12 },
+      medio: { length: 4, maxAttempts: 10 },
+      dificil: { length: 5, maxAttempts: 8 }
+    };
+
+    let senhaSecreta = "";
+    let tentativas = 0;
+    let maxTentativas = 0;
+    let tamanhoSenha = 0;
+    let jogoAtivo = false;
+    let tempoInicio = 0;
+
+    function gerarSenha(tamanho) {
+      const digitos = ["0","1","2","3","4","5","6","7","8","9"];
+      digitos.sort(() => Math.random() - 0.5);
+      return digitos.slice(0, tamanho).join("");
+    }
+
+    function iniciarJogo() {
+      const diffKey = document.getElementById("difficulty").value;
+      const config = CONFIGS[diffKey];
+
+      tamanhoSenha = config.length;
+      maxTentativas = config.maxAttempts;
+      senhaSecreta = gerarSenha(tamanhoSenha);
+      tentativas = 0;
+      jogoAtivo = true;
+      tempoInicio = Date.now();
+
+      document.getElementById("historico").innerHTML = "";
+      document.getElementById("palpite").value = "";
+      document.getElementById("palpite").disabled = false;
+      document.getElementById("palpite").maxLength = tamanhoSenha;
+      document.getElementById("btnEnviar").disabled = false;
+
+      atualizarStatus(`Jogo Iniciado! Tentativas: ${maxTentativas}`);
+      carregarRanking();
+    }
+
+    function processarPalpite() {
+      if (!jogoAtivo) return;
+
+      const input = document.getElementById("palpite");
+      const chute = input.value.trim();
+
+      if (chute.length !== tamanhoSenha || isNaN(chute)) {
+        alert(`Digite exatamente ${tamanhoSenha} números.`);
+        return;
+      }
+
+      if (new Set(chute).size !== tamanhoSenha) {
+        alert("Não repita números no mesmo palpite!");
+        return;
+      }
+
+      tentativas++;
+      let exatos = 0;
+      let parciais = 0;
+
+      for (let i = 0; i < tamanhoSenha; i++) {
+        if (chute[i] === senhaSecreta[i]) {
+          exatos++;
+        } else if (senhaSecreta.includes(chute[i])) {
+          parciais++;
+        }
+      }
+
+      adicionarAoHistorico(chute, exatos, parciais);
+      input.value = "";
+
+      if (exatos === tamanhoSenha) {
+        const tempoTotal = Math.round((Date.now() - tempoInicio) / 1000);
+        const pontos = Math.max(10, (tamanhoSenha * 1000) - (tentativas * 50) - (tempoTotal * 2));
         
-        # Cálculo dos acertos
-        certos = sum(1 for i in range(tamanho_senha) if chute[i] == senha[i])
-        existentes = sum(1 for c in chute if c in senha) - certos
-        
-        historico.append((chute, certos, existentes))
+        atualizarStatus(`🎉 Parabéns! Você acertou em ${tempoTotal}s com ${pontos} pontos!`);
+        salvarRanking(pontos, tempoTotal);
+        finalizarJogo();
+      } else if (tentativas >= maxTentativas) {
+        atualizarStatus(`💥 Game Over! A senha era: ${senhaSecreta}`);
+        finalizarJogo();
+      } else {
+        atualizarStatus(`Tentativa ${tentativas}/${maxTentativas}`);
+      }
+    }
 
-        # Condição de vitória
-        if certos == tamanho_senha:
-            tempo_total = time.time() - tempo_inicio
-            pontos_finais = max(50, pontos - (tentativas * 50) - int(tempo_total * 2))
-            
-            print("\n🎉 PARABÉNS! Você descobriu a senha!")
-            print(f"🔑 Senha: {senha}")
-            print(f"⏱️ Tempo: {round(tempo_total, 1)}s")
-            print(f"⭐ Pontuação: {pontos_finais} pontos")
-            
-            nome = input("\nDigite seu nome para o Ranking: ").strip()
-            if nome:
-                atualizar_ranking(nome, pontos_finais, tempo_total, nome_dif)
-            return
+    function adicionarAoHistorico(chute, exatos, parciais) {
+      const tbody = document.getElementById("historico");
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${chute}</td><td>${exatos}</td><td>${parciais}</td>`;
+      tbody.prepend(tr);
+    }
 
-        # Exibe resultado atual
-        print(f"🎯 Posição exata: {certos} | 🟡 Número correto na posição errada: {existentes}")
+    function atualizarStatus(msg) {
+      document.getElementById("status").innerText = msg;
+    }
 
-        # Exibe histórico resumido
-        print("\n📜 Histórico da partida:")
-        for h_chute, h_certos, h_existentes in historico:
-            print(f"   • {h_chute} -> 🎯 {h_certos} | 🟡 {h_existentes}")
+    function finalizarJogo() {
+      jogoAtivo = false;
+      document.getElementById("palpite").disabled = true;
+      document.getElementById("btnEnviar").disabled = true;
+    }
 
-    # Se esgotar as tentativas
-    print("\n💥 GAME OVER! Você gastou todas as suas tentativas.")
-    print(f"🔑 A senha secreta era: {senha}")
+    function salvarRanking(pontos, tempo) {
+      const melhorScore = localStorage.getItem("melhorScore") || 0;
+      if (pontos > melhorScore) {
+        localStorage.setItem("melhorScore", pontos);
+        localStorage.setItem("melhorTempo", tempo);
+        carregarRanking();
+      }
+    }
 
-def main():
-    while True:
-        limpar_tela()
-        print("========================================")
-        print("      🎮 MENU PRINCIPAL - SENHA        ")
-        print("========================================")
-        print("1. Jogar")
-        print("2. Ver Ranking")
-        print("3. Sair")
-        
-        opcao = input("\nEscolha uma opção: ").strip()
-        
-        if opcao == "1":
-            jogar()
-            input("\nPressione ENTER para voltar ao menu...")
-        elif opcao == "2":
-            limpar_tela()
-            exibir_ranking()
-            input("\nPressione ENTER para voltar ao menu...")
-        elif opcao == "3":
-            print("\nAté a próxima!")
-            break
+    function carregarRanking() {
+      const pontos = localStorage.getItem("melhorScore");
+      const tempo = localStorage.getItem("melhorTempo");
+      const divRanking = document.getElementById("melhorScore");
 
-if __name__ == "__main__":
-    main()
+      if (pontos) {
+        divRanking.innerText = `Recorde: ${pontos} pts em ${tempo}s`;
+      } else {
+        divRanking.innerText = "Nenhum recorde registrado.";
+      }
+    }
+
+    carregarRanking();
+  </script>
+</body>
+</html>
